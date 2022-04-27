@@ -68,7 +68,7 @@ namespace AssociationDoc
                     else
                     {
                         except = "Ошибка, можно добавлять только файлы .xlsx, .xls, .csv.\nОстальные файлы не были добавлены";
-                        
+
                     }
 
                 }
@@ -79,12 +79,12 @@ namespace AssociationDoc
             }
             catch (Exception ex)
             {
-                
+
                 MessageBox.Show(ex.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
-        
+
 
         private void Association_Click(object sender, RoutedEventArgs e)
         {
@@ -96,9 +96,9 @@ namespace AssociationDoc
                 if (!File.Exists(endFile.Path))
                 {
                     filesExists = false;
-                    FilesNotExists+=endFile.Path + "\n";
+                    FilesNotExists += endFile.Path + "\n";
                 }
-                foreach(FileSource file in items)
+                foreach (FileSource file in items)
                 {
                     if (!File.Exists(file.Path))
                     {
@@ -157,24 +157,23 @@ namespace AssociationDoc
                     wsNewExcel.Range["CA24"].Value = "=СУММ(CA25:CA" + idLastNew + ")";
                     wsNewExcel.Range["CH24"].Value = "=СУММ(CH25:CH" + idLastNew + ")";
                     wsNewExcel.Range["CO24"].Value = "=СУММ(CO25:CO" + idLastNew + ")";
-                    wsNewExcel.Range["Q26:CO" + idLastNew].NumberFormat = "@";
                     wsNewExcel.Range["Q26:CO" + idLastNew].NumberFormat = "0.00"; //числовой формат ячеек
-                    
-                    if (idLastCopy > 24)
+
+                    if (idLastCopy > 26)
                     {
                         for (int ii = 25; ii <= idLastNew; ii++)
                         {
                             wsNewExcel.Range["A" + ii].RowHeight = 60;
                         }
                     }
-                    wbNewExcel.Close(true);
+                    wbNewExcel.Close(true); //закрываем всё
                     wbTitle.Close();
                     xlApp.Quit();
                     GC.Collect();
 
                     Process.Start(endFile.Path);
                 }
-                catch (Exception ex)
+                catch (Exception ex) //пробуем всё закрыть в случае ошибки
                 {
                     try
                     {
@@ -190,7 +189,7 @@ namespace AssociationDoc
                     {
                         wbTitle.Close();
                     }
-                    catch {}
+                    catch { }
                     try
                     {
                         xlApp.Quit();
@@ -205,13 +204,13 @@ namespace AssociationDoc
             }
             else
             {
-                
-                    MessageBox.Show("Не хватает файлов для объединения", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-                
+
+                MessageBox.Show("Не хватает файлов для объединения", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+
             }
         }
 
-        public void ColumnWidths(Excel.Worksheet wsNewExcel)
+        public void ColumnWidths(Excel.Worksheet wsNewExcel) //ширина столбцов
         {
             wsNewExcel.Columns.ColumnWidth = 0.83f;
             wsNewExcel.Range["CN1"].ColumnWidth = 2.86f;
@@ -232,7 +231,7 @@ namespace AssociationDoc
             {
                 if (ListViewSelectedEndFile.Items.Count < 1)
                 {
-                    OpenFileDialog openFileDialog = new OpenFileDialog();
+                    OpenFileDialog openFileDialog = new OpenFileDialog(); //добавление файла
                     openFileDialog.Multiselect = false;
                     openFileDialog.Title = "Выберите документ в который добавятся данные";
                     openFileDialog.Filter = "Таблицы (*.xlsx,*.csv,*.xls)|*.xlsx;*.csv;*.xls"; //форматы файлов, которые отображаются при выборе
@@ -268,7 +267,7 @@ namespace AssociationDoc
             }
         }
 
-        private void ListViewSelectedEndFile_PreviewDrop(object sender, DragEventArgs e)
+        private void ListViewSelectedEndFile_PreviewDrop(object sender, DragEventArgs e) //закидываем файл в листвью
         {
             try
             {
@@ -355,21 +354,35 @@ namespace AssociationDoc
             ListViewSelectedFiles.Items.Refresh();
         }
 
-        private void StartFiles_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        private void StartFiles_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e) //открываем по двойному нажатию
         {
-            if(e.ClickCount>=2)
+            try
             {
-                Border b = sender as Border;
-                Process.Start(b.Uid);
+                if (e.ClickCount >= 2)
+                {
+                    Border b = sender as Border;
+                    Process.Start(b.Uid);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
-        private void EndFile_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
-        {
-            if (e.ClickCount >= 2)
+            private void EndFile_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
             {
-                Process.Start(endFile.Path);
+                try
+                {
+                    if (e.ClickCount >= 2)
+                    {
+                        Process.Start(endFile.Path);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
         }
     }
-}
