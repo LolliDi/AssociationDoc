@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows;
+using System.Windows.Controls;
 using Excel = Microsoft.Office.Interop.Excel;
 
 
@@ -83,21 +84,33 @@ namespace AssociationDoc
             }
         }
 
-        struct FileSource
-        {
-            public string Path;
-            string fileName;
-
-            public string FileName { get => fileName; set => fileName = value; }
-
-        }
+        
 
         private void Association_Click(object sender, RoutedEventArgs e)
         {
             if (endFile.Path != null && items.Count > 0)
             {
+                string FilesNotExists = "Следующие файлы были перемещены или удалены:\n";
+                bool filesExists = true;
 
-                
+                if (!File.Exists(endFile.Path))
+                {
+                    filesExists = false;
+                    FilesNotExists+=endFile.Path + "\n";
+                }
+                foreach(FileSource file in items)
+                {
+                    if (!File.Exists(file.Path))
+                    {
+                        filesExists = false;
+                        FilesNotExists += file.Path + "\n";
+                    }
+                }
+                if (!filesExists)
+                {
+                    MessageBox.Show(FilesNotExists, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
                 Excel.Application xlApp = new Excel.Application(); //Excel
                 Excel.Workbook wbStartExcel = xlApp.Workbooks.Open(items[0].Path); //название файла Excel откуда будем копировать лист 
                 Excel.Worksheet wsStartExcel = wbStartExcel.Worksheets[1]; //лист Excel, откуда будем копировать данные
@@ -112,27 +125,15 @@ namespace AssociationDoc
                     foreach (FileSource file in items)
                     {
                         wbStartExcel = xlApp.Workbooks.Open(file.Path);
-
-
                         wsStartExcel = wbStartExcel.Worksheets[1]; //название листа или 1-й лист в книге xlSht = xlWB.Worksheets[1];
-
-
-
                         idLastCopy = wsStartExcel.Cells.SpecialCells(Excel.XlCellType.xlCellTypeLastCell).Row; //ид последней записи
-
-
-
                         if (wsNewExcel.Cells.SpecialCells(Excel.XlCellType.xlCellTypeLastCell).Row == 1) //если первая запись в новом листе, то 
                         {                                                                               //копируем шапку
-
                             wsTitle.Range["A1:CU26"].Copy();
                             wsNewExcel.Range["A1"].PasteSpecial(Excel.XlPasteType.xlPasteColumnWidths);
                             wsNewExcel.Range["A1"].PasteSpecial(Excel.XlPasteType.xlPasteAll);
-
                             ColumnWidths(wsNewExcel);
-
                             wbNewExcel.Save();
-
                         }
                         if (idLastCopy > 26)
                         {
@@ -144,8 +145,8 @@ namespace AssociationDoc
                             wsNewExcel.Range["A" + id].Value = wsStartExcel.Range["V7"].Text; //запись названия
                             wsNewExcel.get_Range("A" + id, "CU" + id).Merge(Type.Missing);
                         }
+                        wbStartExcel.Close();
                     }
-
                     int idLastNew = wsNewExcel.Cells.SpecialCells(Excel.XlCellType.xlCellTypeLastCell).Row;
                     wsNewExcel.Range["AK24"].Value = "=СУММ(AK25:AK" + idLastNew + ")"; //переделываем формулы
                     wsNewExcel.Range["AR24"].Value = "=СУММ(AR25:AR" + idLastNew + ")";
@@ -156,7 +157,9 @@ namespace AssociationDoc
                     wsNewExcel.Range["CA24"].Value = "=СУММ(CA25:CA" + idLastNew + ")";
                     wsNewExcel.Range["CH24"].Value = "=СУММ(CH25:CH" + idLastNew + ")";
                     wsNewExcel.Range["CO24"].Value = "=СУММ(CO25:CO" + idLastNew + ")";
-                    wsNewExcel.Range["Q26:CO" + idLastCopy].NumberFormat = "0.00"; //числовой формат ячеек
+                    wsNewExcel.Range["Q26:CO" + idLastNew].NumberFormat = "@";
+                    wsNewExcel.Range["Q26:CO" + idLastNew].NumberFormat = "0.00"; //числовой формат ячеек
+                    
                     if (idLastCopy > 24)
                     {
                         for (int ii = 25; ii <= idLastNew; ii++)
@@ -164,16 +167,8 @@ namespace AssociationDoc
                             wsNewExcel.Range["A" + ii].RowHeight = 60;
                         }
                     }
-
-
                     wbNewExcel.Close(true);
-
-
-
-
-
                     wbTitle.Close();
-                    wbStartExcel.Close();
                     xlApp.Quit();
                     GC.Collect();
 
@@ -183,9 +178,21 @@ namespace AssociationDoc
                 {
                     try
                     {
-                        wbNewExcel.Close(true);
-                        wbTitle.Close();
                         wbStartExcel.Close();
+                    }
+                    catch { }
+                    try
+                    {
+                        wbNewExcel.Close();
+                    }
+                    catch { }
+                    try
+                    {
+                        wbTitle.Close();
+                    }
+                    catch {}
+                    try
+                    {
                         xlApp.Quit();
                         GC.Collect();
                     }
@@ -223,18 +230,14 @@ namespace AssociationDoc
         {
             try
             {
-
-
                 if (ListViewSelectedEndFile.Items.Count < 1)
                 {
-
                     OpenFileDialog openFileDialog = new OpenFileDialog();
                     openFileDialog.Multiselect = false;
                     openFileDialog.Title = "Выберите документ в который добавятся данные";
                     openFileDialog.Filter = "Таблицы (*.xlsx,*.csv,*.xls)|*.xlsx;*.csv;*.xls"; //форматы файлов, которые отображаются при выборе
                     if (openFileDialog.ShowDialog() == true)
                     {
-                        AddFiles(openFileDialog.FileNames);
                         string path = openFileDialog.FileName;
                         string docType = path.Substring(path.Length - 5, 5);
                         Regex regexDocType = new Regex(@"(\.csv)|(\.xlsx)|(\.xls)");
@@ -242,6 +245,7 @@ namespace AssociationDoc
                         {
                             if (items.Where(x => x.Path == path).Count() < 1)
                             {
+                                ListViewSelectedEndFile.Items.Clear();
                                 endFile = new FileSource() { Path = path, FileName = Path.GetFileName(path) };
                                 ListViewSelectedEndFile.Items.Add(endFile);
                             }
@@ -268,8 +272,6 @@ namespace AssociationDoc
         {
             try
             {
-
-
                 if (ListViewSelectedEndFile.Items.Count < 1)
                 {
                     if (e.Data.GetDataPresent(DataFormats.FileDrop))
@@ -327,7 +329,7 @@ namespace AssociationDoc
 
         private void ListViewSelectedFiles_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
         {
-            if (ListViewSelectedFiles.Items.Count > 0)
+            if (ListViewSelectedFiles.SelectedItems.Count > 0)
             {
                 DelFiles.Visibility = Visibility.Visible;
             }
@@ -351,6 +353,23 @@ namespace AssociationDoc
                 items.Remove(file);
             }
             ListViewSelectedFiles.Items.Refresh();
+        }
+
+        private void StartFiles_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if(e.ClickCount>=2)
+            {
+                Border b = sender as Border;
+                Process.Start(b.Uid);
+            }
+        }
+
+        private void EndFile_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (e.ClickCount >= 2)
+            {
+                Process.Start(endFile.Path);
+            }
         }
     }
 }

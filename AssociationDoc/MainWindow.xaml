@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:AssociationDoc"
         mc:Ignorable="d"
+        Icon="Resources/logo.png"
         Title="Объединение таблиц" MinHeight="600" MinWidth="1000" Height="600" Width="1000">
     <Grid Margin="5">
         <Grid.ColumnDefinitions>
@@ -23,12 +24,12 @@
             <ListView VerticalContentAlignment="Top" Grid.Column="0" Background="#e5FCC0EB" Grid.Row="1" Name="ListViewSelectedFiles" AllowDrop="True" PreviewDrop="ListViewSelectedFiles_PreviewDrop" SelectionMode="Multiple" SelectionChanged="ListViewSelectedFiles_SelectionChanged">
                 <ListView.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <WrapPanel Orientation="Horizontal"/>
+                        <WrapPanel Orientation="Horizontal" Margin="10"/>
                     </ItemsPanelTemplate>
                     </ListView.ItemsPanel>
                     <ListView.ItemTemplate>
                         <DataTemplate>
-                            <Border Margin="5" Background="Transparent">
+                            <Border Margin="5" Background="Transparent" MouseLeftButtonDown="StartFiles_MouseLeftButtonDown" Uid="{Binding Path}">
                                 <StackPanel Orientation="Vertical" Width="100">
                                     <Image Source="Resources/Excel.png" Width="90" Height="90" Stretch="Fill"/>
                                     <TextBlock Text="{Binding FileName}" Width="85"/>
@@ -66,12 +67,12 @@
             <ListView Grid.Column="0" Grid.Row="1" Name="ListViewSelectedEndFile" Background="#e5C0FCEF" AllowDrop="True" PreviewDrop="ListViewSelectedEndFile_PreviewDrop" SelectionChanged="ListViewSelectedEndFile_SelectionChanged">
                 <ListView.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <WrapPanel Orientation="Horizontal"/>
+                        <WrapPanel Orientation="Horizontal" Margin="10"/>
                     </ItemsPanelTemplate>
                 </ListView.ItemsPanel>
                 <ListView.ItemTemplate>
                     <DataTemplate>
-                        <Border Margin="5" Background="Transparent">
+                        <Border Margin="5" Background="Transparent" MouseLeftButtonDown="EndFile_MouseLeftButtonDown">
                             <StackPanel Orientation="Vertical" Width="100">
                                 <Image Source="Resources/Excel.png" Width="90" Height="90" Stretch="Fill"/>
                                 <TextBlock Text="{Binding FileName}" Width="85"/>
