@@ -23,6 +23,8 @@ namespace AssociationDoc
             ListViewSelectedFiles.ItemsSource = items;
         }
 
+
+
         private void Button_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
@@ -84,7 +86,73 @@ namespace AssociationDoc
             }
         }
 
+        public bool Unlock(Excel.Worksheet sheet, string fileName)
+        {
+            if (sheet.ProtectContents)
+            {
+                if (!Password.allPasswords)
+                {
+                    while (true)
+                    {
+                        GetPasswordWindow g = new GetPasswordWindow(fileName);
+                        g.Owner = this;
+                        g.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+                        g.ShowDialog();
+                        if (unlockSheet(sheet))
+                        {
+                            MessageBoxResult r = MessageBox.Show("Этот пароль подходит ко всем следующим фалам?", "Вопрос", MessageBoxButton.YesNo);
+                            switch (r)
+                            {
+                                case MessageBoxResult.Yes: Password.allPasswords = true; break;
+                                default: Password.allPasswords = false; break;
+                            }
+                            return true;
+                        }
+                        else
+                        {
+                            Password.allPasswords = false;
+                            MessageBoxResult r = MessageBox.Show("Пароль не подошел!\nДа - ввести ещё раз\nНет - отменить объединение","Вопрос",MessageBoxButton.YesNo);
+                            switch (r)
+                            {
+                                case MessageBoxResult.Yes: break;
+                                default: return false;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    if(unlockSheet(sheet))
+                    {
+                        return true;
+                    }
+                    else
+                    {
+                        Password.allPasswords = false;
+                        return Unlock(sheet, fileName);
+                    }
+                }
+            }
+            else
+            {
+                return true;
+            }
 
+        }
+
+        public bool unlockSheet(Excel.Worksheet sheet)
+        {
+            try
+            {
+                sheet.Unprotect(Password.password);
+                return true;
+            }
+            catch
+            {
+                Password.allPasswords = false;
+                return false;
+            }
+        }
 
         private void Association_Click(object sender, RoutedEventArgs e)
         {
@@ -118,76 +186,117 @@ namespace AssociationDoc
                 Excel.Worksheet wsNewExcel = wbNewExcel.Sheets[1]; //первый лист по порядку - в него будем вставлять данные; //лист Excel на который будем копировать
                 Excel.Workbook wbTitle = xlApp.Workbooks.Open(Environment.CurrentDirectory + "\\Title.xlsx"); //шапка документа
                 Excel.Worksheet wsTitle = wbTitle.Sheets[1];
-                int idLastCopy = wsStartExcel.Cells.SpecialCells(Excel.XlCellType.xlCellTypeLastCell).Row;
-
-                try
+                if (Unlock(wsStartExcel, items[0].FileName))
                 {
-                    foreach (FileSource file in items)
+                    int idLastCopy = wsStartExcel.Cells.SpecialCells(Excel.XlCellType.xlCellTypeLastCell).Row;
+                    wbStartExcel.Close(false);
+                    try
                     {
-                        wbStartExcel = xlApp.Workbooks.Open(file.Path);
-                        wsStartExcel = wbStartExcel.Worksheets[1]; //название листа или 1-й лист в книге xlSht = xlWB.Worksheets[1];
-                        idLastCopy = wsStartExcel.Cells.SpecialCells(Excel.XlCellType.xlCellTypeLastCell).Row; //ид последней записи
-                        if (wsNewExcel.Cells.SpecialCells(Excel.XlCellType.xlCellTypeLastCell).Row == 1) //если первая запись в новом листе, то 
-                        {                                                                               //копируем шапку
-                            wsTitle.Range["A1:CU26"].Copy();
-                            wsNewExcel.Range["A1"].PasteSpecial(Excel.XlPasteType.xlPasteColumnWidths);
-                            wsNewExcel.Range["A1"].PasteSpecial(Excel.XlPasteType.xlPasteAll);
-                            ColumnWidths(wsNewExcel);
-                            wbNewExcel.Save();
+                        foreach (FileSource file in items)
+                        {
+                            wbStartExcel = xlApp.Workbooks.Open(file.Path);
+                            wsStartExcel = wbStartExcel.Worksheets[1]; //название листа или 1-й лист в книге xlSht = xlWB.Worksheets[1];
+                            if (!Unlock(wsStartExcel,file.FileName))
+                            {
+                                throw new Exception("Вы отменили объединение файлов!");
+                            }
+
+                            idLastCopy = wsStartExcel.Cells.SpecialCells(Excel.XlCellType.xlCellTypeLastCell).Row; //ид последней записи
+                            if (wsNewExcel.Cells.SpecialCells(Excel.XlCellType.xlCellTypeLastCell).Row == 1) //если первая запись в новом листе, то 
+                            {                                                                               //копируем шапку
+                                wsTitle.Range["A1:CU26"].Copy();
+                                wsNewExcel.Range["A1"].PasteSpecial(Excel.XlPasteType.xlPasteColumnWidths);
+                                wsNewExcel.Range["A1"].PasteSpecial(Excel.XlPasteType.xlPasteAll);
+                                ColumnWidths(wsNewExcel);
+                                wbNewExcel.Save();
+                            }
+                            if (idLastCopy > 26)
+                            {
+                                wsStartExcel.Range["A27:CU" + idLastCopy].Copy();
+                                int id = wsNewExcel.Cells.SpecialCells(Excel.XlCellType.xlCellTypeLastCell).Row + 2; //оставили место под название
+                                wsNewExcel.Range["A" + id].PasteSpecial(Excel.XlPasteType.xlPasteAll);
+
+                                id--;
+                                wsNewExcel.Range["A" + id].Value = wsStartExcel.Range["V7"].Text; //запись названия
+                                wsNewExcel.get_Range("A" + id, "CU" + id).Merge(Type.Missing);
+                                wsNewExcel.Range["A" + id].HorizontalAlignment = Excel.XlHAlign.xlHAlignCenter;
+                                wsNewExcel.Range["A" + id].VerticalAlignment = Excel.XlVAlign.xlVAlignCenter;
+                                wsNewExcel.Range["A" + id].Font.Size = 30;
+                            }
+                            wbStartExcel.Close(false);
                         }
+                        int idLastNew = wsNewExcel.Cells.SpecialCells(Excel.XlCellType.xlCellTypeLastCell).Row;
+                        wsNewExcel.Range["AK24"].Value = "=СУММ(AK25:AK" + idLastNew + ")"; //переделываем формулы
+                        wsNewExcel.Range["AR24"].Value = "=СУММ(AR25:AR" + idLastNew + ")";
+                        wsNewExcel.Range["AY24"].Value = "=СУММ(AY25:AY" + idLastNew + ")";
+                        wsNewExcel.Range["BF24"].Value = "=СУММ(BF25:BF" + idLastNew + ")";
+                        wsNewExcel.Range["BM24"].Value = "=СУММ(BM25:BM" + idLastNew + ")";
+                        wsNewExcel.Range["BT24"].Value = "=СУММ(BT25:BT" + idLastNew + ")";
+                        wsNewExcel.Range["CA24"].Value = "=СУММ(CA25:CA" + idLastNew + ")";
+                        wsNewExcel.Range["CH24"].Value = "=СУММ(CH25:CH" + idLastNew + ")";
+                        wsNewExcel.Range["CO24"].Value = "=СУММ(CO25:CO" + idLastNew + ")";
+                        //wsNewExcel.Range["Q26:CO" + idLastNew].NumberFormat = "0.00"; //числовой формат ячеек
+
                         if (idLastCopy > 26)
                         {
-                            wsStartExcel.Range["A27:CU" + idLastCopy].Copy();
-                            int id = wsNewExcel.Cells.SpecialCells(Excel.XlCellType.xlCellTypeLastCell).Row + 2; //оставили место под название
-                            wsNewExcel.Range["A" + id].PasteSpecial(Excel.XlPasteType.xlPasteAll);
-
-                            id--;
-                            wsNewExcel.Range["A" + id].Value = wsStartExcel.Range["V7"].Text; //запись названия
-                            wsNewExcel.get_Range("A" + id, "CU" + id).Merge(Type.Missing);
+                            for (int ii = 27; ii <= idLastNew; ii++)
+                            {
+                                wsNewExcel.Range["A" + ii].RowHeight = 60;
+                            }
                         }
-                        wbStartExcel.Close();
-                    }
-                    int idLastNew = wsNewExcel.Cells.SpecialCells(Excel.XlCellType.xlCellTypeLastCell).Row;
-                    wsNewExcel.Range["AK24"].Value = "=СУММ(AK25:AK" + idLastNew + ")"; //переделываем формулы
-                    wsNewExcel.Range["AR24"].Value = "=СУММ(AR25:AR" + idLastNew + ")";
-                    wsNewExcel.Range["AY24"].Value = "=СУММ(AY25:AY" + idLastNew + ")";
-                    wsNewExcel.Range["BF24"].Value = "=СУММ(BF25:BF" + idLastNew + ")";
-                    wsNewExcel.Range["BM24"].Value = "=СУММ(BM25:BM" + idLastNew + ")";
-                    wsNewExcel.Range["BT24"].Value = "=СУММ(BT25:BT" + idLastNew + ")";
-                    wsNewExcel.Range["CA24"].Value = "=СУММ(CA25:CA" + idLastNew + ")";
-                    wsNewExcel.Range["CH24"].Value = "=СУММ(CH25:CH" + idLastNew + ")";
-                    wsNewExcel.Range["CO24"].Value = "=СУММ(CO25:CO" + idLastNew + ")";
-                    wsNewExcel.Range["Q26:CO" + idLastNew].NumberFormat = "0.00"; //числовой формат ячеек
+                        wbNewExcel.Close(true); //закрываем всё
+                        wbTitle.Close(false);
+                        xlApp.Quit();
+                        GC.Collect();
 
-                    if (idLastCopy > 26)
+                        Password.allPasswords = false;
+
+                        Process.Start(endFile.Path);
+                    }
+                    catch (Exception ex) //пробуем всё закрыть в случае ошибки
                     {
-                        for (int ii = 25; ii <= idLastNew; ii++)
+                        try
                         {
-                            wsNewExcel.Range["A" + ii].RowHeight = 60;
+                            wbStartExcel.Close(false);
                         }
-                    }
-                    wbNewExcel.Close(true); //закрываем всё
-                    wbTitle.Close();
-                    xlApp.Quit();
-                    GC.Collect();
+                        catch { }
+                        try
+                        {
+                            wbNewExcel.Close(false);
+                        }
+                        catch { }
+                        try
+                        {
+                            wbTitle.Close(false);
+                        }
+                        catch { }
+                        try
+                        {
+                            xlApp.Quit();
+                            GC.Collect();
+                        }
+                        catch { }
+                        Password.allPasswords = false;
 
-                    Process.Start(endFile.Path);
+                        MessageBox.Show("Произошла ошибка! Пропробуйте ещё раз.\nКод ошибки: " + ex.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+
+                    }
                 }
-                catch (Exception ex) //пробуем всё закрыть в случае ошибки
+                else
                 {
                     try
                     {
-                        wbStartExcel.Close();
+                        wbStartExcel.Close(false);
                     }
                     catch { }
                     try
                     {
-                        wbNewExcel.Close();
+                        wbNewExcel.Close(false);
                     }
                     catch { }
                     try
                     {
-                        wbTitle.Close();
+                        wbTitle.Close(false);
                     }
                     catch { }
                     try
@@ -196,9 +305,9 @@ namespace AssociationDoc
                         GC.Collect();
                     }
                     catch { }
-
-                    MessageBox.Show("Произошла ошибка! Пропробуйте ещё раз.\nКод ошибки: " + ex.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-
+                    Password.allPasswords = false;
+                    MessageBox.Show("Вы отменили объедингение фалов!", "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
                 }
 
             }
@@ -370,19 +479,19 @@ namespace AssociationDoc
             }
         }
 
-            private void EndFile_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        private void EndFile_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            try
             {
-                try
+                if (e.ClickCount >= 2)
                 {
-                    if (e.ClickCount >= 2)
-                    {
-                        Process.Start(endFile.Path);
-                    }
+                    Process.Start(endFile.Path);
                 }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(ex.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }
+}
