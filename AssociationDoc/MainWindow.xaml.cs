@@ -209,6 +209,7 @@ namespace AssociationDoc
                                 wsNewExcel.Range["A1"].PasteSpecial(Excel.XlPasteType.xlPasteAll);
                                 ColumnWidths(wsNewExcel);
                                 wbNewExcel.Save();
+
                             }
                             if (idLastCopy > 26)
                             {
@@ -321,14 +322,19 @@ namespace AssociationDoc
         public void ColumnWidths(Excel.Worksheet wsNewExcel) //ширина столбцов
         {
             wsNewExcel.Columns.ColumnWidth = 0.83f;
+            wsNewExcel.Range["AC1"].ColumnWidth = 3f;
+            wsNewExcel.Range["AQ1"].ColumnWidth = 6f;
             wsNewExcel.Range["CN1"].ColumnWidth = 6f;
             wsNewExcel.Range["P1"].ColumnWidth = 22f;
-            wsNewExcel.Range["Q1"].ColumnWidth = 6f;
+            wsNewExcel.Range["Q1"].ColumnWidth = 3f;
             wsNewExcel.Range["AJ1"].ColumnWidth = 10.57f;
             wsNewExcel.Range["AW1"].ColumnWidth = 6f;
             wsNewExcel.Range["BE1"].ColumnWidth = 6f;
+            wsNewExcel.Range["BS1"].ColumnWidth = 6f;
             wsNewExcel.Range["BL1"].ColumnWidth = 6f;
             wsNewExcel.Range["BZ1"].ColumnWidth = 6f;
+            wsNewExcel.Range["CG1"].ColumnWidth = 6f;
+            wsNewExcel.Range["CU1"].ColumnWidth = 6f;
         }
 
         FileSource endFile = new FileSource() { FileName = "", Path = "" };
