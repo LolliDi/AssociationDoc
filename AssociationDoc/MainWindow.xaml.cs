@@ -86,21 +86,21 @@ namespace AssociationDoc
             }
         }
 
-        public bool Unlock(Excel.Worksheet sheet, string fileName)
+        public bool Unlock(Excel.Worksheet sheet, string fileName) //проверка на защиту листа и ввод пароля
         {
             if (sheet.ProtectContents)
             {
-                if (!Password.allPasswords)
+                if (!Password.allPasswords) //если защищен
                 {
                     while (true)
                     {
-                        GetPasswordWindow g = new GetPasswordWindow(fileName);
+                        GetPasswordWindow g = new GetPasswordWindow(fileName); //окно для ввода пароля
                         g.Owner = this;
-                        g.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+                        g.WindowStartupLocation = WindowStartupLocation.CenterOwner; //центровка
                         g.ShowDialog();
-                        if (unlockSheet(sheet))
+                        if (unlockSheet(sheet)) //если разблокрировался, то спрашиваем применять ли пароль ко всем
                         {
-                            MessageBoxResult r = MessageBox.Show("Этот пароль подходит ко всем следующим фалам?", "Вопрос", MessageBoxButton.YesNo);
+                            MessageBoxResult r = MessageBox.Show("Этот пароль подходит ко всем следующим файлам?", "Вопрос", MessageBoxButton.YesNo, MessageBoxImage.Question);
                             switch (r)
                             {
                                 case MessageBoxResult.Yes: Password.allPasswords = true; break;
@@ -108,10 +108,10 @@ namespace AssociationDoc
                             }
                             return true;
                         }
-                        else
+                        else //иначе предлагаем ввести заново или же отменить объединение
                         {
                             Password.allPasswords = false;
-                            MessageBoxResult r = MessageBox.Show("Пароль не подошел!\nДа - ввести ещё раз\nНет - отменить объединение","Вопрос",MessageBoxButton.YesNo);
+                            MessageBoxResult r = MessageBox.Show("Пароль не подошел!\nДа - ввести ещё раз\nНет - отменить объединение", "Вопрос", MessageBoxButton.YesNo, MessageBoxImage.Question);
                             switch (r)
                             {
                                 case MessageBoxResult.Yes: break;
@@ -122,7 +122,7 @@ namespace AssociationDoc
                 }
                 else
                 {
-                    if(unlockSheet(sheet))
+                    if (unlockSheet(sheet))
                     {
                         return true;
                     }
@@ -140,7 +140,7 @@ namespace AssociationDoc
 
         }
 
-        public bool unlockSheet(Excel.Worksheet sheet)
+        public bool unlockSheet(Excel.Worksheet sheet) //вводим пароль для разблокировки листа
         {
             try
             {
@@ -196,7 +196,7 @@ namespace AssociationDoc
                         {
                             wbStartExcel = xlApp.Workbooks.Open(file.Path);
                             wsStartExcel = wbStartExcel.Worksheets[1]; //название листа или 1-й лист в книге xlSht = xlWB.Worksheets[1];
-                            if (!Unlock(wsStartExcel,file.FileName))
+                            if (!Unlock(wsStartExcel, file.FileName))
                             {
                                 throw new Exception("Вы отменили объединение файлов!");
                             }
@@ -235,7 +235,6 @@ namespace AssociationDoc
                         wsNewExcel.Range["CA24"].Value = "=СУММ(CA25:CA" + idLastNew + ")";
                         wsNewExcel.Range["CH24"].Value = "=СУММ(CH25:CH" + idLastNew + ")";
                         wsNewExcel.Range["CO24"].Value = "=СУММ(CO25:CO" + idLastNew + ")";
-                        //wsNewExcel.Range["Q26:CO" + idLastNew].NumberFormat = "0.00"; //числовой формат ячеек
 
                         if (idLastCopy > 26)
                         {
@@ -306,7 +305,7 @@ namespace AssociationDoc
                     }
                     catch { }
                     Password.allPasswords = false;
-                    MessageBox.Show("Вы отменили объедингение фалов!", "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show("Вы отменили объединение файлов!", "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -322,14 +321,14 @@ namespace AssociationDoc
         public void ColumnWidths(Excel.Worksheet wsNewExcel) //ширина столбцов
         {
             wsNewExcel.Columns.ColumnWidth = 0.83f;
-            wsNewExcel.Range["CN1"].ColumnWidth = 2.86f;
+            wsNewExcel.Range["CN1"].ColumnWidth = 6f;
             wsNewExcel.Range["P1"].ColumnWidth = 22f;
-            wsNewExcel.Range["Q1"].ColumnWidth = 2.86f;
+            wsNewExcel.Range["Q1"].ColumnWidth = 6f;
             wsNewExcel.Range["AJ1"].ColumnWidth = 10.57f;
-            wsNewExcel.Range["AW1"].ColumnWidth = 4f;
-            wsNewExcel.Range["BE1"].ColumnWidth = 5f;
-            wsNewExcel.Range["BL1"].ColumnWidth = 3.57f;
-            wsNewExcel.Range["BZ1"].ColumnWidth = 2.29f;
+            wsNewExcel.Range["AW1"].ColumnWidth = 6f;
+            wsNewExcel.Range["BE1"].ColumnWidth = 6f;
+            wsNewExcel.Range["BL1"].ColumnWidth = 6f;
+            wsNewExcel.Range["BZ1"].ColumnWidth = 6f;
         }
 
         FileSource endFile = new FileSource() { FileName = "", Path = "" };
